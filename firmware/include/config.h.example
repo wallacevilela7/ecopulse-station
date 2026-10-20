@@ -1,0 +1,39 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// ==============================================================
+// Configurações de Conectividade Wi-Fi e Nuvem
+// Renomeie este arquivo para config.h e preencha suas credenciais
+// ==============================================================
+
+#define WIFI_SSID       "SUA_REDE_WIFI"
+#define WIFI_PASSWORD   "SUA_SENHA_WIFI"
+
+// Endpoint da API de Telemetria
+// Para testes locais na mesma rede Wi-Fi: "http://192.168.1.X:8000/api/v1/telemetry"
+// Para deploy em nuvem AWS com domínio: "https://sua-api.com/api/v1/telemetry"
+#define API_URL         "http://192.168.1.100:8000/api/v1/telemetry"
+
+// Chave estática de autenticação no header X-API-Key
+#define API_KEY         "secreto_pim2_unip_2026"
+
+// Identificador do dispositivo microcontrolador
+#define DEVICE_ID       "esp32-meteo-01"
+
+// Intervalo de transmissão em milissegundos (ex: 30 segundos)
+#define TELEMETRY_INTERVAL_MS 30000
+
+// ==============================================================
+// Mapa de Pinagem (GPIOs ESP32)
+// ==============================================================
+#define PIN_DHT22       4   // One-Wire Digital
+#define PIN_I2C_SDA     21  // BMP280 SDA
+#define PIN_I2C_SCL     22  // BMP280 SCL
+#define PIN_LDR         34  // ADC1_CH6 (Divisor 10k)
+#define PIN_RAIN        35  // ADC1_CH7 (Placa de Chuva)
+#define PIN_MQ135       32  // ADC1_CH4 (Divisor 1k/2k)
+
+#define PIN_ALARM_LED   25  // LED / Buzzer de Alerta Local
+#define PIN_WIFI_LED    26  // LED indicador de status Wi-Fi
+
+#endif // CONFIG_H

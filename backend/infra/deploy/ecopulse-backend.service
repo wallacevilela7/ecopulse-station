@@ -1,0 +1,20 @@
+[Unit]
+Description=EcoPulse Station FastAPI Backend Service (UNIP PIM II)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ecopulse-station/backend
+EnvironmentFile=/home/ubuntu/ecopulse-station/backend/.env
+ExecStart=/home/ubuntu/ecopulse-station/backend/.venv/bin/gunicorn app.main:app \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind 127.0.0.1:8000 \
+    --access-logfile /var/log/ecopulse/access.log \
+    --error-logfile /var/log/ecopulse/error.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

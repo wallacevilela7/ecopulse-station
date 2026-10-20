@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Especificação Técnica e Arquitetura da Estação Meteorológica Inteligente Urbana - Projeto e Desenvolvimento II (UNIP Ciência da Computação)">
+  <meta name="author" content="Ciência da Computação - UNIP">
+  <title>Especificação Técnica | Estação Meteorológica Inteligente IoT & AWS</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- KaTeX for math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --bg-card-hover: rgba(31, 41, 55, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(59, 130, 246, 0.3);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-violet: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --glass-blur: blur(12px);
+      --sidebar-width: 290px;
+      --header-height: 64px;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.85);
+      --bg-card-hover: rgba(241, 245, 249, 0.95);
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-accent: rgba(59, 130, 246, 0.25);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.7;
+      font-size: 15px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+    }
+
+    /* Reading Progress Bar */
+    #progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      z-index: 1000;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue), var(--accent-violet));
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      transition: width 0.1s ease;
+    }
+
+    /* Top Navbar */
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: rgba(10, 15, 29, 0.85);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      z-index: 100;
+      transition: background-color 0.3s;
+    }
+    [data-theme="light"] .top-nav {
+      background: rgba(248, 250, 252, 0.85);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-violet));
+      color: white;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.1rem;
+      background: linear-gradient(90deg, #fff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    [data-theme="light"] .brand-title {
+      background: linear-gradient(90deg, #0f172a, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-icon {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .btn-icon:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+
+    /* Layout Wrapper */
+    .app-container {
+      display: flex;
+      margin-top: var(--header-height);
+      min-height: calc(100vh - var(--header-height));
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: var(--sidebar-width);
+      position: fixed;
+      top: var(--header-height);
+      bottom: 0;
+      left: 0;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 90;
+    }
+
+    .sidebar-header {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      font-weight: 700;
+      padding: 0 0.75rem 0.5rem;
+    }
+
+    .sidebar a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .sidebar a:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    [data-theme="light"] .sidebar a:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .sidebar a.active {
+      color: var(--accent-blue);
+      background: rgba(59, 130, 246, 0.12);
+      font-weight: 600;
+      border-left: 3px solid var(--accent-blue);
+    }
+
+    .sidebar .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+    .sidebar a.active .badge-dot {
+      background: var(--accent-blue);
+      box-shadow: 0 0 8px var(--accent-blue);
+    }
+
+    /* Main Content Area */
+    .content-area {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 2.5rem 3.5rem 5rem;
+      max-width: 1100px;
+    }
+
+    /* Hero Banner */
+    .hero {
+      position: relative;
+      background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, rgba(88, 28, 135, 0.2) 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 3rem;
+      overflow: hidden;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .meta-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .chip-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .chip-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .chip-purple { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .chip-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 2.3rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      max-width: 800px;
+    }
+
+    .hero-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+    .hero-info-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .hero-info-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .hero-info-val {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Section Styling */
+    section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: calc(var(--header-height) + 1.5rem);
+    }
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    h2 .section-num {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--accent-cyan);
+      font-size: 0.9rem;
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+    }
+
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 1.75rem 0 0.85rem;
+      color: #93c5fd;
+    }
+    [data-theme="light"] h3 {
+      color: #1d4ed8;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    /* Glass Cards */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover {
+      border-color: var(--border-accent);
+    }
+
+    /* Interactive Architecture Flowchart */
+    .flowchart {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      margin: 2rem 0;
+    }
+
+    .flow-layer {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+      transition: all 0.3s;
+    }
+    .flow-layer:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 10px 25px -10px rgba(59, 130, 246, 0.25);
+    }
+
+    .flow-layer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .flow-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flow-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 0.25rem 0;
+    }
+    .flow-connector::before,
+    .flow-connector::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+    }
+    .flow-pill {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.85rem;
+    }
+    .flow-pill strong {
+      display: block;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+    .flow-pill span {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 1rem 1.25rem;
+      font-family: var(--font-heading);
+      font-weight: 600;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+    [data-theme="light"] th {
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    td {
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    [data-theme="light"] tr:hover td {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    /* Code Blocks */
+    .code-wrapper {
+      position: relative;
+      margin: 1.25rem 0;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: #060911;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .btn-copy {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    pre {
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.85em;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #93c5fd;
+    }
+    [data-theme="light"] code {
+      background: rgba(0, 0, 0, 0.06);
+      color: #2563eb;
+    }
+
+    /* Formula Box */
+    .math-card {
+      background: rgba(139, 92, 246, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+    .math-title {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--accent-violet);
+      margin-bottom: 0.75rem;
+      text-align: left;
+    }
+    .math-body {
+      font-size: 1.1rem;
+      overflow-x: auto;
+      padding: 0.5rem 0;
+    }
+
+    /* Alert / Callout Boxes */
+    .callout {
+      border-left: 4px solid var(--accent-blue);
+      background: rgba(59, 130, 246, 0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.25rem 0;
+      font-size: 0.92rem;
+    }
+    .callout-amber {
+      border-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.08);
+    }
+    .callout-emerald {
+      border-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.08);
+    /* Schematic & Wiring Box */
+    .schematic-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-accent);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    .schematic-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .schematic-img-container {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem 0;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+    }
+    .schematic-img-container img {
+      width: 100%;
+      height: auto;
+      max-height: 540px;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .schematic-img-container:hover img {
+      transform: scale(1.015);
+    }
+    .rail-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+    .rail-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-size: 0.84rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.6rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+    [data-theme="light"] .rail-item {
+      background: rgba(0, 0, 0, 0.02);
+    }
+    .rail-color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .status-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Print View */
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+      .top-nav, .sidebar, #progress-container, .btn-icon, .btn-copy {
+        display: none !important;
+      }
+      .content-area {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+      }
+      .card, .flow-layer, .hero {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+      }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .content-area {
+        margin-left: 0;
+        padding: 1.5rem;
+      }
+      .menu-btn {
+        display: flex !important;
+      }
+    }
+
+    .menu-btn {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Progress Bar -->
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <button class="btn-icon menu-btn" id="menu-toggle" aria-label="Abrir Menu">☰</button>
+      <a href="#" class="brand">
+        <span class="brand-badge">UNIP EaD</span>
+        <span class="brand-title">PD-II: Estação Meteorológica IoT</span>
+      </a>
+    </div>
+
+    <div class="nav-actions">
+      <button class="btn-icon" id="theme-toggle" aria-label="Alternar Tema">
+        <span id="theme-icon">🌙</span> <span id="theme-text">Dark</span>
+      </button>
+      <button class="btn-icon" id="print-btn" onclick="window.print()">
+        🖨️ Imprimir / PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+
+    <!-- Sidebar Sticky Navigation -->
+    <nav class="sidebar" id="sidebar-nav">
+      <div class="sidebar-header">Capítulos & Seções</div>
+      <a href="#visao-geral" class="active"><span class="badge-dot"></span>1. Visão Geral & Arquitetura</a>
+      <a href="#interdisciplinar"><span class="badge-dot"></span>2. Disciplinas UNIP</a>
+      <a href="#hardware-firmware"><span class="badge-dot"></span>3. Hardware & ESP32</a>
+      <a href="#backend-nuvem"><span class="badge-dot"></span>4. Backend AWS & Python</a>
+      <a href="#banco-nuvem"><span class="badge-dot"></span>5. Banco de Dados PostgreSQL</a>
+      <a href="#geometria-analitica"><span class="badge-dot"></span>6. Geometria Analítica</a>
+      <a href="#dashboard-web"><span class="badge-dot"></span>7. Dashboard Web Público</a>
+      <a href="#testes-validacao"><span class="badge-dot"></span>8. Roteiro de Testes</a>
+      <a href="#estrutura-abnt"><span class="badge-dot"></span>9. Estrutura ABNT</a>
+    </nav>
+
+    <!-- Content Area -->
+    <main class="content-area">
+
+      <!-- Hero Header -->
+      <section class="hero" id="top">
+        <div class="meta-tags">
+          <span class="chip chip-blue">🎓 UNIP Ciência da Computação</span>
+          <span class="chip chip-emerald">⚡ 2º Semestre</span>
+          <span class="chip chip-purple">☁️ Nuvem AWS & PostgreSQL</span>
+          <span class="chip chip-amber">📡 ESP32 & IoT</span>
+        </div>
+        <h1>Estação Meteorológica Inteligente para Monitoramento Urbano</h1>
+        <p class="subtitle">Especificação Técnica, Arquitetura de Software/Hardware e Fundamentos Interdisciplinares para Cidades Inteligentes e Sustentabilidade.</p>
+        
+        <div class="hero-info-grid">
+          <div class="hero-info-item">
+            <span class="hero-info-label">Disciplina</span>
+            <span class="hero-info-val">Projeto e Desenvolvimento II (PD-II)</span>
+          </div>
+          <div class="hero-info-item">
+            <span class="hero-info-label">Entrega</span>
+            <span class="hero-info-val">Relatório Técnico ABNT (15 a 20 págs)</span>
+          </div>
+          <div class="hero-info-item">
+            <span class="hero-info-label">Formato do Sistema</span>
+            <span class="hero-info-val">End-to-End (Embarcado, AWS, Nuvem, Web)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 1. Visão Geral e Arquitetura -->
+      <section id="visao-geral">
+        <h2><span class="section-num">01</span> Visão Geral e Arquitetura do Sistema</h2>
+        <p>O projeto consiste em uma solução integrada de <strong>Internet das Coisas (IoT)</strong> e <strong>Computação em Nuvem</strong> projetada para coletar, processar, armazenar e disponibilizar dados climáticos e de qualidade ambiental em tempo real para os cidadãos e gestores urbanos.</p>
+
+        <!-- Visual Flowchart Layers -->
+        <div class="flowchart">
+          
+          <div class="flow-layer" style="border-left: 4px solid var(--accent-cyan);">
+            <div class="flow-layer-header">
+              <div class="flow-title">📡 Camada 1: Dispositivo Embarcado (Hardware & Firmware)</div>
+              <span class="chip chip-blue">ESP32 + C++</span>
+            </div>
+            <div class="flow-grid">
+              <div class="flow-pill"><strong>DHT22</strong><span>Temp & Umidade (-40°C a 80°C)</span></div>
+              <div class="flow-pill"><strong>BMP280</strong><span>Pressão Barométrica (I2C)</span></div>
+              <div class="flow-pill"><strong>MQ-135</strong><span>Qualidade do Ar / Gases (ADC)</span></div>
+              <div class="flow-pill"><strong>LDR</strong><span>Radiação Solar / Luz</span></div>
+              <div class="flow-pill"><strong>Pluviômetro</strong><span>Índice de Chuva</span></div>
+            </div>
+          </div>
+
+          <div class="flow-connector">Wi-Fi 2.4 GHz / HTTPS JSON Payload</div>
+
+          <div class="flow-layer" style="border-left: 4px solid var(--accent-blue);">
+            <div class="flow-layer-header">
+              <div class="flow-title">☁️ Camada 2: Backend em Nuvem (AWS EC2 & Python)</div>
+              <span class="chip chip-purple">FastAPI + Uvicorn</span>
+            </div>
+            <div class="flow-grid">
+              <div class="flow-pill"><strong>Endpoint Ingestão</strong><span>POST /api/v1/telemetria</span></div>
+              <div class="flow-pill"><strong>Motor de Regras</strong><span>Inferência lógica de alertas</span></div>
+              <div class="flow-pill"><strong>Módulo Matemático</strong><span>Heat Index & Geometria</span></div>
+              <div class="flow-pill"><strong>API de Consulta</strong><span>GET /telemetria/atual & historico</span></div>
+            </div>
+          </div>
+
+          <div class="flow-connector">Conexão Criptografada SSL / SQLAlchemy ORM</div>
+
+          <div class="flow-layer" style="border-left: 4px solid var(--accent-emerald);">
+            <div class="flow-layer-header">
+              <div class="flow-title">🗄️ Camada 3: Banco de Dados em Nuvem (PostgreSQL)</div>
+              <span class="chip chip-emerald">Supabase / Neon / RDS</span>
+            </div>
+            <div class="flow-grid">
+              <div class="flow-pill"><strong>Tabela: estacoes</strong><span>Cadastro, latitude e longitude</span></div>
+              <div class="flow-pill"><strong>Tabela: leituras_sensores</strong><span>Séries temporais com timestamp</span></div>
+              <div class="flow-pill"><strong>Tabela: alertas_emitidos</strong><span>Histórico de incidentes severos</span></div>
+            </div>
+          </div>
+
+          <div class="flow-connector">REST API / JSON (HTTPS)</div>
+
+          <div class="flow-layer" style="border-left: 4px solid var(--accent-violet);">
+            <div class="flow-layer-header">
+              <div class="flow-title">🌐 Camada 4: Dashboard Web Público Online</div>
+              <span class="chip chip-amber">Vercel / Netlify</span>
+            </div>
+            <div class="flow-grid">
+              <div class="flow-pill"><strong>Cards em Tempo Real</strong><span>Indicadores climáticos atuais</span></div>
+              <div class="flow-pill"><strong>Gráficos Chart.js</strong><span>Histórico das últimas 24h</span></div>
+              <div class="flow-pill"><strong>Mapa Leaflet.js</strong><span>Raio analítico e geolocalização</span></div>
+              <div class="flow-pill"><strong>Defesa Civil</strong><span>Alertas para a comunidade</span></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 2. Disciplinas UNIP -->
+      <section id="interdisciplinar">
+        <h2><span class="section-num">02</span> Mapeamento Interdisciplinar das Disciplinas da UNIP</h2>
+        <p>O projeto foi rigorosamente estruturado para demonstrar a aplicação prática de cada disciplina cursada no 2º semestre:</p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Disciplina Curricular</th>
+                <th>Aplicação Prática no Projeto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Circuitos Lógicos Digitais</strong></td>
+                <td>Dimensionamento dos circuitos de condicionamento de sinal (divisores resistivos do LDR e MQ-135), barramento I2C para BMP280, portas lógicas e lógica combinacional de acionamento de alarme local autônomo (LED/Buzzer).</td>
+              </tr>
+              <tr>
+                <td><strong>Lógica de Programação e Algoritmos</strong></td>
+                <td>Algoritmos de leitura de sensores sem travamento (temporização baseada em <code>millis()</code>), rotinas de cálculo de média móvel para estabilização de leitura e estruturas de repetição e seleção no firmware.</td>
+              </tr>
+              <tr>
+                <td><strong>Lógica Matemática / Pensamento Lógico</strong></td>
+                <td>Modelagem formal de regras de consistência de dados (descarte de leituras impossíveis) e tabelas-verdade para os estados de alerta climático (ex.: Chuva Intensa $\land$ Queda Barométrica $\implies$ Alerta de Tempestade).</td>
+              </tr>
+              <tr>
+                <td><strong>Programação Estruturada em Python</strong></td>
+                <td>Construção da API REST completa com FastAPI, classes Pydantic para validação estruturada dos dados, manipulação de coleções (listas, dicionários, tuplas) e análises estatísticas em Python.</td>
+              </tr>
+              <tr>
+                <td><strong>Geometria Analítica para Computação</strong></td>
+                <td>Georreferenciamento bidimensional e tridimensional da estação, aplicação de vetores para cálculo de dispersão de poluentes/gradiente térmico e equações da circunferência no plano para delimitar raios de cobertura e impacto de alertas.</td>
+              </tr>
+              <tr>
+                <td><strong>Educação Ambiental</strong></td>
+                <td>Apresentação transparente e acessível de métricas de qualidade do ar e conforto térmico para conscientização dos cidadãos, suporte a políticas públicas e mitigação de ilhas de calor urbanas.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 3. Hardware e ESP32 -->
+      <section id="hardware-firmware">
+        <h2><span class="section-num">03</span> Especificação de Hardware e Firmware (ESP32)</h2>
+        
+        <h3>3.1. Lista de Componentes do Dispositivo</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Componente</th>
+                <th>Função</th>
+                <th>Tipo de Interface</th>
+                <th>Faixa de Operação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>ESP32 NodeMCU (30 pinos)</strong></td>
+                <td>Processador central e conectividade Wi-Fi</td>
+                <td>Microcontrolador Dual-Core 240 MHz</td>
+                <td>3.3V DC</td>
+              </tr>
+              <tr>
+                <td><strong>DHT22 (AM2302)</strong></td>
+                <td>Temperatura e Umidade Relativa do Ar</td>
+                <td>Digital (1-Wire proprietário)</td>
+                <td>-40°C a +80°C / 0 a 100% UR</td>
+              </tr>
+              <tr>
+                <td><strong>BMP280</strong></td>
+                <td>Pressão Atmosférica e Altimetria</td>
+                <td>Digital (Barramento I2C)</td>
+                <td>300 a 1100 hPa</td>
+              </tr>
+              <tr>
+                <td><strong>MQ-135</strong></td>
+                <td>Qualidade do Ar (CO2, NH3, fumaça, benzeno)</td>
+                <td>Analógico (ADC) / Digital comparador</td>
+                <td>10 a 1000 ppm</td>
+              </tr>
+              <tr>
+                <td><strong>LDR (Fotoresistor 5mm)</strong></td>
+                <td>Intensidade luminosa / Radiação solar</td>
+                <td>Analógico (Divisor de Tensão)</td>
+                <td>0 a 4095 (ADC de 12 bits)</td>
+              </tr>
+              <tr>
+                <td><strong>Sensor Pluviométrico</strong></td>
+                <td>Detecção e índice de precipitação de chuva</td>
+                <td>Analógico / Digital de lâmina</td>
+                <td>0 a 4095 (ADC)</td>
+              </tr>
+              <tr>
+                <td><strong>LED RGB + Buzzer 5V</strong></td>
+                <td>Alarme sonoro/visual autônomo local</td>
+                <td>Digital (Saída GPIO com transistor)</td>
+                <td>3.3V / 5V</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>3.2. Mapeamento Completo de Conexões e Pinagem (ESP32 & Protoboard)</h3>
+        <p>A estação emprega uma arquitetura com <strong>duas protoboards unidas em paralelo</strong>, viabilizando a segregação física dos barramentos de alimentação de 3.3V (lógica/sensores sensíveis) e 5.0V (aquecimento do MQ-135), mitigando ruídos eletromagnéticos e instabilidades nas leituras analógicas do ADC1.</p>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Sensor / Periférico</th>
+                <th>Pino no Sensor</th>
+                <th>Conectar em (ESP32 / Protoboard)</th>
+                <th>Observações e Condicionamento</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Alimentação Lógica (3.3V)</strong></td>
+                <td>Trilho Vermelho (Protoboard 1 - Superior)</td>
+                <td><span class="status-badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">3V3 do ESP32</span></td>
+                <td>Barramento regulado de 3.3V para sensores lógicos (BMP280, DHT22, LDR, Sensor de Chuva).</td>
+              </tr>
+              <tr>
+                <td><strong>GND Unificado (Terra)</strong></td>
+                <td>Trilho Azul/Preto (Ambas Protoboards)</td>
+                <td><span class="status-badge" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3);">GND do ESP32</span></td>
+                <td>GND comum a todo o circuito. Trilhos superior e inferior interligados por jumper direto.</td>
+              </tr>
+              <tr>
+                <td><strong>Alimentação Potência (5V)</strong></td>
+                <td>Trilho Vermelho/Laranja (Protoboard 2 - Inferior)</td>
+                <td><span class="status-badge" style="background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.3);">VIN / 5V do ESP32</span></td>
+                <td>Barramento de 5V direto da USB, reservado exclusivamente para o filamento de aquecimento do MQ-135.</td>
+              </tr>
+              <tr>
+                <td><strong>BMP280</strong><br><small style="color: var(--text-dim);">Pressão & Temperatura</small></td>
+                <td><code>VCC</code><br><code>GND</code><br><code>SCL</code><br><code>SDA</code></td>
+                <td>Trilho 3.3V<br>Trilho GND<br><span class="status-badge" style="background: rgba(234, 179, 8, 0.15); color: #fde047;">GPIO 22</span> (SCL)<br><span class="status-badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">GPIO 21</span> (SDA)</td>
+                <td>Barramento I2C digital. Deixar pinos <code>CSB</code> e <code>SDO</code> desconectados (ou ligar <code>SDO</code> ao GND para fixar endereço <code>0x76</code>).</td>
+              </tr>
+              <tr>
+                <td><strong>DHT22</strong><br><small style="color: var(--text-dim);">Umidade & Temperatura</small></td>
+                <td><code>VCC</code> (Pino 1)<br><code>DATA</code> (Pino 2)<br><code>NC</code> (Pino 3)<br><code>GND</code> (Pino 4)</td>
+                <td>Trilho 3.3V<br><span class="status-badge" style="background: rgba(139, 92, 246, 0.15); color: #c084fc;">GPIO 4</span><br>Não conectar<br>Trilho GND</td>
+                <td>Barramento digital One-Wire. Sensor avulso (4 pinos) requer resistor pull-up de 10kΩ entre Pino 1 (VCC) e Pino 2 (DATA). Módulo com PCB dispensa resistor externo.</td>
+              </tr>
+              <tr>
+                <td><strong>LDR</strong><br><small style="color: var(--text-dim);">Fotoresistor de Luminosidade</small></td>
+                <td>Perna A<br>Perna B</td>
+                <td>Trilho 3.3V<br><span class="status-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">GPIO 34</span> (ADC1) + Resistor 10kΩ ao GND</td>
+                <td>Divisor de tensão resistivo. Canal ADC1_CH6 livre de interferência Wi-Fi, garantindo leitura suave da incidência solar.</td>
+              </tr>
+              <tr>
+                <td><strong>Sensor de Chuva</strong><br><small style="color: var(--text-dim);">Placa Condutiva de Gotas</small></td>
+                <td><code>VCC</code><br><code>GND</code><br><code>AO</code> (Saída Analógica)</td>
+                <td>Trilho 3.3V<br>Trilho GND<br><span class="status-badge" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">GPIO 35</span> (ADC1)</td>
+                <td>Alimentar o comparador em 3.3V garante saída analógica de 0.0V a 3.3V, tornando seguro o pino analógico do ESP32.</td>
+              </tr>
+              <tr>
+                <td><strong>MQ-135</strong><br><small style="color: var(--text-dim);">Gases & Qualidade do Ar</small></td>
+                <td><code>VCC</code><br><code>GND</code><br><code>AO</code> (Saída Analógica)</td>
+                <td>Trilho 5V (VIN)<br>Trilho GND<br><span class="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">GPIO 32</span> (via Divisor 1kΩ / 2kΩ)</td>
+                <td>Filamento exige 5V. Divisor atenuador passivo (1kΩ em série com AO e 2kΩ para o GND) reduz sinal máximo de 5V para ~3.33V, protegendo o ESP32.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>3.3. Detalhamento dos Circuitos Passivos na Protoboard</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin: 1.25rem 0;">
+          
+          <div class="card" style="border-top: 3px solid var(--accent-emerald);">
+            <h4 style="display: flex; align-items: center; gap: 8px; color: var(--accent-emerald); margin-bottom: 0.75rem;">
+              ☀️ 1. Divisor de Tensão do LDR (Luminosidade)
+            </h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              O LDR varia sua resistência inversamente à irradiância. Para que o ESP32 meça a variação como tensão de 0V a 3.3V:
+            </p>
+            <ul style="font-size: 0.85rem; padding-left: 1.2rem; color: var(--text-muted); line-height: 1.6;">
+              <li>Conecte uma perna do LDR à linha regulada de <strong>3.3V</strong>.</li>
+              <li>Conecte a outra perna do LDR ao <strong>GPIO 34</strong> (ADC1).</li>
+              <li>Na mesma trilha do GPIO 34, insira um terminal de um resistor de <strong>10kΩ</strong>.</li>
+              <li>O terminal oposto do resistor conecta-se ao <strong>GND</strong>.</li>
+            </ul>
+            <div class="math-card" style="margin: 0.75rem 0 0; padding: 0.75rem;">
+              <div class="math-body" style="font-size: 0.95rem;">
+                $$\text{luminosity\_pct} = \left(\frac{\text{raw\_adc}}{4095.0}\right) \times 100$$
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="border-top: 3px solid var(--accent-amber);">
+            <h4 style="display: flex; align-items: center; gap: 8px; color: var(--accent-amber); margin-bottom: 0.75rem;">
+              🛡️ 2. Divisor Atenuador de Proteção do MQ-135 (5V &rarr; 3.3V)
+            </h4>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              O aquecedor do MQ-135 opera em 5V e sua saída analógica pode atingir 5V. Para proteger o ADC do ESP32:
+            </p>
+            <ul style="font-size: 0.85rem; padding-left: 1.2rem; color: var(--text-muted); line-height: 1.6;">
+              <li>Conecte a saída <code>AO</code> do MQ-135 a um resistor de <strong>1kΩ</strong> ($R_1$).</li>
+              <li>O outro terminal de $R_1$ liga-se ao <strong>GPIO 32</strong> e a um resistor de <strong>2kΩ</strong> ($R_2$, ou dois de 1kΩ em série).</li>
+              <li>O terminal inferior de $R_2$ conecta-se ao <strong>GND</strong>.</li>
+            </ul>
+            <div class="math-card" style="margin: 0.75rem 0 0; padding: 0.75rem;">
+              <div class="math-body" style="font-size: 0.95rem;">
+                $$V_{\text{ESP32}} = V_{\text{AO}} \cdot \frac{2\text{k}\Omega}{1\text{k}\Omega + 2\text{k}\Omega} = V_{\text{AO}} \cdot \frac{2}{3} \approx 3{,}33\text{ V}$$
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <h3>3.4. Representação Visual e Montagem na Protoboard Dupla</h3>
+        <p>Abaixo está a representação visual detalhada da montagem de bancada com <strong>duas protoboards unidas lado a lado</strong>. Essa disposição assegura espaço generoso para os componentes e evita cruzamento e embolamento de fios de sinal com linhas de alimentação:</p>
+
+        <!-- Schematic Box with Embedded High-Res Image -->
+        <div class="schematic-box">
+          <div class="schematic-header">
+            <div>
+              <strong style="color: var(--text-main); font-size: 1rem;">Esquema Fritzing Oficial de Montagem &bull; Duas Protoboards</strong>
+              <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 2px;">ESP32 NodeMCU 30 pinos + BMP280 + DHT22 + LDR + Sensor de Chuva + MQ-135</div>
+            </div>
+            <span class="chip chip-emerald">Protoboard Dupla 830pts</span>
+          </div>
+
+          <div class="schematic-img-container">
+            <img src="assets/protoboard_esquematico.jpg" alt="Esquema de Montagem da Estação Meteorológica na Protoboard Dupla" loading="lazy">
+          </div>
+
+          <div class="rail-legend">
+            <div class="rail-item">
+              <span class="rail-color-dot" style="background: #ef4444;"></span>
+              <div>
+                <strong>Trilho Vermelho Superior:</strong>
+                <div style="color: var(--text-dim); font-size: 0.75rem;">3.3V do ESP32 &rarr; BMP280, DHT22, LDR, Chuva</div>
+              </div>
+            </div>
+            <div class="rail-item">
+              <span class="rail-color-dot" style="background: #f97316;"></span>
+              <div>
+                <strong>Trilho Laranja/Vermelho Inferior:</strong>
+                <div style="color: var(--text-dim); font-size: 0.75rem;">VIN / 5V USB &rarr; Aquecedor do MQ-135</div>
+              </div>
+            </div>
+            <div class="rail-item">
+              <span class="rail-color-dot" style="background: #1e293b; border: 1px solid #475569;"></span>
+              <div>
+                <strong>Trilho Azul/Preto:</strong>
+                <div style="color: var(--text-dim); font-size: 0.75rem;">GND comum interligando protoboards</div>
+              </div>
+            </div>
+            <div class="rail-item">
+              <span class="rail-color-dot" style="background: #10b981;"></span>
+              <div>
+                <strong>Resistores Passivos:</strong>
+                <div style="color: var(--text-dim); font-size: 0.75rem;">Pull-up 10kΩ DHT22, Divisores LDR e MQ-135</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3>3.5. Lógica Combinacional e Circuito Local de Segurança</h3>
+        <p>Em conformidade com a disciplina de <strong>Circuitos Lógicos Digitais</strong>, o ESP32 dispõe de um estágio combinacional autônomo de alarme local:</p>
+        
+        <div class="math-card">
+          <div class="math-title">Expressão Booleana do Alarme Local de Emergência:</div>
+          <div class="math-body">
+            $$S = (C \land B) \lor A$$
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.5rem;">
+            Onde: $C$ = Chuva forte detectada ($\text{intensity\_pct} > 15\%$), $B$ = Queda barométrica brusca ($\Delta P < -2\text{ hPa/h}$), $A$ = Gases nocivos elevados ($V > 2.5\text{ V}$).
+          </p>
+        </div>
+
+        <h3>3.6. Contrato de Comunicação REST API e Telemetria IoT</h3>
+        <p>A comunicação com o backend em nuvem adota o protocolo HTTP sobre TCP/IP nativo do Wi-Fi do ESP32, sem intermediários adicionais:</p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Parâmetro</th>
+                <th>Especificação Técnica</th>
+                <th>Justificativa de Engenharia</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Protocolo</strong></td>
+                <td>HTTP/1.1 (ou HTTPS) sobre TCP/IP</td>
+                <td>Integração direta com APIs REST padrão, dispensando broker MQTT na fase inicial.</td>
+              </tr>
+              <tr>
+                <td><strong>Método & Rota</strong></td>
+                <td><code>POST /api/v1/telemetry</code></td>
+                <td>Endpoint semântico versionado para ingestão de novas medições.</td>
+              </tr>
+              <tr>
+                <td><strong>Portas</strong></td>
+                <td><code>8080</code> (Dev Local) / <code>80</code> ou <code>443</code> (Nuvem AWS)</td>
+                <td>Padrão para desenvolvimento local e ambiente de produção com SSL.</td>
+              </tr>
+              <tr>
+                <td><strong>Cabeçalho de Segurança</strong></td>
+                <td><code>X-API-Key: &lt;token_secreto&gt;</code></td>
+                <td>Autenticação estática leve no header para validar dispositivos autorizados.</td>
+              </tr>
+              <tr>
+                <td><strong>Intervalo de Envio</strong></td>
+                <td>A cada 30 a 60 segundos</td>
+                <td>Respeita o tempo físico do DHT22 ($\ge 2\text{ s}$) e economiza largura de banda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>A. Estrutura Canônica do Payload JSON</h4>
+        <p>O firmware transmite simultaneamente o valor bruto do conversor ADC (<code>raw_adc</code>) e o valor processado em unidade física. Dessa forma, ajustes de calibração podem ser efetuados diretamente na nuvem sem necessidade de regravar o ESP32 em campo:</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>JSON Payload &bull; POST /api/v1/telemetry &bull; Content-Type: application/json</span>
+            <button class="btn-copy" onclick="copyCode(this)">Copiar</button>
+          </div>
+          <pre><code>{
+  "device_id": "esp32-meteo-01",
+  "timestamp": 1792508580,
+  "wifi_rssi_dbm": -62,
+  "sensors": {
+    "dht22": {
+      "temperature_c": 25.4,
+      "humidity_pct": 68.2,
+      "status": "OK"
+    },
+    "bmp280": {
+      "temperature_c": 25.6,
+      "pressure_hpa": 1013.25,
+      "altitude_m": 760.5,
+      "status": "OK"
+    },
+    "ldr": {
+      "raw_adc": 2890,
+      "luminosity_pct": 70.6
+    },
+    "mq135": {
+      "raw_adc": 1150,
+      "voltage_v": 1.39,
+      "air_quality_ppm": 415.8,
+      "is_warmed_up": true
+    },
+    "rain": {
+      "raw_adc": 3850,
+      "intensity_pct": 6.0,
+      "is_raining": false
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h4>B. Fórmulas de Conversão e Dicionário de Hardware (ADC 12 bits &bull; 0 a 4095)</h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1.25rem 0;">
+          <div class="card">
+            <strong style="color: var(--accent-cyan);">Sensor LDR (GPIO 34)</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.4rem 0;">Escuro total $\approx 0$, sol pleno $\approx 4095$:</p>
+            <code>luminosity_pct = (raw_adc / 4095.0) * 100</code>
+          </div>
+          <div class="card">
+            <strong style="color: var(--accent-amber);">Sensor MQ-135 (GPIO 32)</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.4rem 0;">Reconstituição da tensão original de 5V ($1.5 \times$):</p>
+            <code>voltage_v = (raw_adc / 4095.0) * 3.3 * 1.5</code>
+            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Pré-aquecimento: <code>is_warmed_up = millis() &gt;= 180000</code></div>
+          </div>
+          <div class="card">
+            <strong style="color: var(--accent-blue);">Sensor de Chuva (GPIO 35)</strong>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.4rem 0;">Placa seca $\approx 4095$, água condutiva $\approx 0$:</p>
+            <code>intensity_pct = (1.0 - (raw_adc / 4095.0)) * 100</code>
+            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Alerta: <code>is_raining = intensity_pct &gt; 15.0</code></div>
+          </div>
+        </div>
+
+        <h4>C. Tratamento de Códigos de Resposta HTTP pelo Firmware</h4>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Código HTTP</th>
+                <th>Significado</th>
+                <th>Ação Executada pelo ESP32</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="chip chip-emerald">201 / 200</span></td>
+                <td>Sucesso na Ingestão</td>
+                <td>Limpa buffer circular de leituras e entra em espera até o próximo ciclo.</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-amber">400 / 422</span></td>
+                <td>Erro de Validação / JSON inválido</td>
+                <td>Imprime log detalhado de erro na porta Serial (115200 baud) e descarta leitura defeituosa.</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-purple">401</span></td>
+                <td>Não Autorizado</td>
+                <td>Chave <code>X-API-Key</code> incorreta. Registra falha de segurança na Serial.</td>
+              </tr>
+              <tr>
+                <td><span class="chip" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">500 / -1</span></td>
+                <td>Erro no Servidor / Queda Wi-Fi</td>
+                <td>Armazena até 10 leituras na memória e ativa reconexão automática com backoff exponencial.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. Backend AWS e Python -->
+      <section id="backend-nuvem">
+        <h2><span class="section-num">04</span> Backend em Nuvem (AWS & Python)</h2>
+        
+        <p>A API foi projetada em <strong>FastAPI</strong> sobre Python 3.11/3.12, hospedada em uma máquina virtual <strong>AWS EC2</strong> (elegível para a camada gratuita <em>AWS Free Tier</em> por 12 meses).</p>
+
+        <h3>4.1. Endpoints da API REST</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Método</th>
+                <th>Rota</th>
+                <th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="chip chip-emerald" style="padding: 2px 8px;">POST</span></td>
+                <td><code>/api/v1/telemetry</code><br><small style="color: var(--text-dim);">alias: /telemetria</small></td>
+                <td>Recebe a telemetria do ESP32 (Header: <code>X-API-Key</code>), valida modelos Pydantic, calcula métricas derivadas e persiste no PostgreSQL.</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-blue" style="padding: 2px 8px;">GET</span></td>
+                <td><code>/api/v1/telemetry/latest</code></td>
+                <td>Retorna o registro meteorológico mais recente para exibição no dashboard.</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-blue" style="padding: 2px 8px;">GET</span></td>
+                <td><code>/api/v1/telemetry/history</code></td>
+                <td>Retorna séries temporais das últimas 24 horas para renderização dos gráficos no Chart.js.</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-blue" style="padding: 2px 8px;">GET</span></td>
+                <td><code>/api/v1/alerts/active</code></td>
+                <td>Retorna alertas climáticos e notificações ativas de defesa civil.</td>
+              </tr>
+              <tr>
+                <td><span class="chip chip-blue" style="padding: 2px 8px;">GET</span></td>
+                <td><code>/api/v1/analysis/geometry</code></td>
+                <td>Calcula a distância euclidiana do cidadão até a estação e avalia se está na área de abrangência.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>4.2. Modelos de Validação Estruturada com Pydantic (Python)</h3>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>Python &bull; app/schemas.py (Pydantic v2)</span>
+            <button class="btn-copy" onclick="copyCode(this)">Copiar</button>
+          </div>
+          <pre><code>from typing import Optional
+from pydantic import BaseModel, Field
+
+class DHT22Data(BaseModel):
+    temperature_c: float = Field(..., ge=-40.0, le=80.0)
+    humidity_pct: float = Field(..., ge=0.0, le=100.0)
+    status: str = "OK"
+
+class BMP280Data(BaseModel):
+    temperature_c: float
+    pressure_hpa: float = Field(..., ge=300.0, le=1100.0)
+    altitude_m: float
+    status: str = "OK"
+
+class LDRData(BaseModel):
+    raw_adc: int = Field(..., ge=0, le=4095)
+    luminosity_pct: float = Field(..., ge=0.0, le=100.0)
+
+class MQ135Data(BaseModel):
+    raw_adc: int = Field(..., ge=0, le=4095)
+    voltage_v: float = Field(..., ge=0.0, le=5.0)
+    air_quality_ppm: float
+    is_warmed_up: bool = True
+
+class RainData(BaseModel):
+    raw_adc: int = Field(..., ge=0, le=4095)
+    intensity_pct: float = Field(..., ge=0.0, le=100.0)
+    is_raining: bool
+
+class SensorsPayload(BaseModel):
+    dht22: DHT22Data
+    bmp280: BMP280Data
+    ldr: LDRData
+    mq135: MQ135Data
+    rain: RainData
+
+class TelemetryIngest(BaseModel):
+    device_id: str
+    timestamp: Optional[int] = None
+    wifi_rssi_dbm: Optional[int] = None
+    sensors: SensorsPayload</code></pre>
+        </div>
+
+        <h3>4.3. Algoritmos Matemáticos Aplicados no Backend</h3>
+        <div class="math-card">
+          <div class="math-title">Sensação Térmica (Equação Polinomial de Rothfusz - Heat Index):</div>
+          <div class="math-body">
+            $$HI = c_1 + c_2 T + c_3 R + c_4 T R + c_5 T^2 + c_6 R^2 + c_7 T^2 R + c_8 T R^2 + c_9 T^2 R^2$$
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Banco de Dados PostgreSQL -->
+      <section id="banco-nuvem">
+        <h2><span class="section-num">05</span> Banco de Dados em Nuvem (PostgreSQL)</h2>
+        <p>Hospedado na nuvem via <strong>Supabase</strong>, <strong>Neon</strong> ou <strong>AWS RDS</strong> com conexão criptografada SSL nativa, oferecendo alta performance para séries temporais e interface web administrativa.</p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>SQL Schema &bull; PostgreSQL DDL</span>
+            <button class="btn-copy" onclick="copyCode(this)">Copiar</button>
+          </div>
+          <pre><code>-- 1. Tabela de Cadastro das Estações
+CREATE TABLE estacoes (
+    id VARCHAR(30) PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    cidade VARCHAR(80) NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    altitude DOUBLE PRECISION NOT NULL,
+    raio_cobertura_km DOUBLE PRECISION DEFAULT 5.0,
+    ativa BOOLEAN DEFAULT TRUE,
+    criada_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Tabela de Séries Temporais das Leituras
+CREATE TABLE leituras_sensores (
+    id BIGSERIAL PRIMARY KEY,
+    estacao_id VARCHAR(30) REFERENCES estacoes(id),
+    data_hora TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    -- Métricas processadas em unidades físicas
+    temperatura NUMERIC(4, 1) NOT NULL,
+    umidade NUMERIC(4, 1) NOT NULL,
+    pressao NUMERIC(6, 1) NOT NULL,
+    altitude_m NUMERIC(6, 1),
+    qualidade_ar NUMERIC(6, 1) NOT NULL,
+    luminosidade NUMERIC(5, 1) NOT NULL,
+    chuva_intensidade NUMERIC(5, 1) NOT NULL,
+    chuva_detectada BOOLEAN DEFAULT FALSE,
+    sensacao_termica NUMERIC(4, 1),
+    aqi_classificacao VARCHAR(30),
+    -- Diagnóstico do ESP32 e leituras brutas (ADC 12 bits)
+    wifi_rssi_dbm INTEGER,
+    ldr_raw_adc INTEGER,
+    mq135_raw_adc INTEGER,
+    mq135_voltage_v NUMERIC(4, 2),
+    mq135_warmed_up BOOLEAN DEFAULT TRUE,
+    rain_raw_adc INTEGER,
+    dht22_status VARCHAR(15) DEFAULT 'OK',
+    bmp280_status VARCHAR(15) DEFAULT 'OK'
+);
+
+CREATE INDEX idx_leituras_estacao_data ON leituras_sensores (estacao_id, data_hora DESC);</code></pre>
+        </div>
+      </section>
+
+      <!-- 6. Geometria Analítica -->
+      <section id="geometria-analitica">
+        <h2><span class="section-num">06</span> Aplicação da Geometria Analítica para Computação</h2>
+        <p>Em conformidade com a ementa de Geometria Analítica, o sistema implementa três formulações vetoriais e analíticas:</p>
+
+        <div class="card">
+          <h3 style="margin-top: 0;">1. Equação Canônica da Circunferência (Raio de Cobertura de Alertas)</h3>
+          <p>A área de influência climática da estação é delimitada pela equação:</p>
+          <div class="math-card" style="margin: 0.75rem 0;">
+            $$(x - x_0)^2 + (y - y_0)^2 \le r^2$$
+          </div>
+          <p>Onde $(x_0, y_0)$ são as coordenadas no plano local da estação meteorológica e $r$ é o raio analítico de validade dos sensores (ex: 5 km).</p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top: 0;">2. Distância Euclidiana Usuário &rarr; Estação</h3>
+          <p>Quando o cidadão abre o dashboard e compartilha sua localização $(x_u, y_u)$, a proximidade é computada por:</p>
+          <div class="math-card" style="margin: 0.75rem 0;">
+            $$d = \sqrt{(x_u - x_0)^2 + (y_u - y_0)^2}$$
+          </div>
+          <p>Se $d \le r$, o usuário recebe notificação em tempo real informando que está dentro da zona de monitoramento direto.</p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top: 0;">3. Vetores de Tendência Barométrica</h3>
+          <p>A taxa de variação da pressão no tempo é tratada como um vetor gradiente:</p>
+          <div class="math-card" style="margin: 0.75rem 0;">
+            $$\vec{v}_{\Delta P} = \left(\frac{dP}{dt}\right)\hat{i}$$
+          </div>
+          <p>Variações bruscas ($|\vec{v}_{\Delta P}| < -2.0 \text{ hPa/h}$) acionam o algoritmo preditivo de tempestades.</p>
+        </div>
+      </section>
+
+      <!-- 7. Dashboard Web -->
+      <section id="dashboard-web">
+        <h2><span class="section-num">07</span> Dashboard Web Público Online</h2>
+        <p>Hospedado em provedores modernos como <strong>Vercel</strong> ou <strong>Netlify</strong> com entrega contínua a partir do repositório Git.</p>
+
+        <div class="flowchart">
+          <div class="card">
+            <h3 style="margin-top: 0;">Módulos Principais da Interface:</h3>
+            <ul style="padding-left: 1.5rem; color: var(--text-muted); line-height: 1.8;">
+              <li><strong>Barra de Status em Tempo Real:</strong> Indicador verde pulsante com tempo de última sincronização.</li>
+              <li><strong>Grid de Cards de Telemetria:</strong> Temperatura com sensação térmica, umidade, pressão com ícone de tendência, índice de qualidade do ar com escala de cores OMS, índice de chuva e luminosidade.</li>
+              <li><strong>Painel de Alertas de Defesa Civil:</strong> Notificações dinâmicas geradas pela inferência lógica do backend.</li>
+              <li><strong>Gráficos Interativos (Chart.js):</strong> Séries temporais das últimas 24 horas permitindo zoom e inspeção ponto a ponto.</li>
+              <li><strong>Mapa Interativo (Leaflet.js):</strong> Marcador da estação, círculo analítico do raio de cobertura e botão para testar a distância do usuário via GPS.</li>
+              <li><strong>Seção de Educação Ambiental:</strong> Dicas práticas de saúde e sustentabilidade alinhadas às condições meteorológicas do momento.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. Roteiro de Testes -->
+      <section id="testes-validacao">
+        <h2><span class="section-num">08</span> Roteiro de Testes e Validação</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Cenário de Teste</th>
+                <th>Procedimento</th>
+                <th>Critério de Aceitação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>TC-01</strong></td>
+                <td>Coleta dos sensores</td>
+                <td>Ligar o ESP32 (real ou no simulador Wokwi) com DHT22 e BMP280.</td>
+                <td>Valores válidos no monitor serial sem travamento.</td>
+              </tr>
+              <tr>
+                <td><strong>TC-02</strong></td>
+                <td>Filtragem de anomalias</td>
+                <td>Simular ruído elétrico ou sensor desconectado.</td>
+                <td>Firmware ignora leituras NaN e mantém consistência.</td>
+              </tr>
+              <tr>
+                <td><strong>TC-03</strong></td>
+                <td>Ingestão na AWS</td>
+                <td>ESP32 envia payload JSON via Wi-Fi para a API.</td>
+                <td>Resposta <code>HTTP 201 Created</code> e registro salvo no PostgreSQL.</td>
+              </tr>
+              <tr>
+                <td><strong>TC-04</strong></td>
+                <td>Disparo de Alertas</td>
+                <td>Injetar queda de pressão (< 1005 hPa) + chuva alta.</td>
+                <td>API emite alerta com severidade <code>PERIGO</code> para o dashboard.</td>
+              </tr>
+              <tr>
+                <td><strong>TC-05</strong></td>
+                <td>Cálculo Geoanalítico</td>
+                <td>Consultar endpoint de geometria com coordenadas distantes.</td>
+                <td>Distância euclidiana calculada com precisão em km.</td>
+              </tr>
+              <tr>
+                <td><strong>TC-06</strong></td>
+                <td>Responsividade do Dashboard</td>
+                <td>Acessar dashboard em celular (375x667) e desktop (1920x1080).</td>
+                <td>Layout fluido, sem sobreposição de cards ou quebra de gráficos.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 9. Estrutura ABNT -->
+      <section id="estrutura-abnt">
+        <h2><span class="section-num">09</span> Estrutura Mapeada para o Relatório ABNT</h2>
+        <div class="callout callout-emerald">
+          <strong>Regra Obrigatória UNIP:</strong> O capítulo de <strong>Desenvolvimento</strong> deve conter no mínimo <strong>15</strong> e no máximo <strong>20 páginas</strong> (sem contar capa, resumos e referências).
+        </div>
+
+        <div class="card">
+          <ol style="padding-left: 1.5rem; color: var(--text-muted); line-height: 1.9;">
+            <li><strong>Elementos Pré-Textuais:</strong> Capa oficial UNIP EaD, Resumo (150 a 500 palavras) com palavras-chave, Abstract com keywords, Sumário numerado.</li>
+            <li><strong>Introdução (1,5 a 2 páginas):</strong> Contextualização das Smart Cities, relevância socioambiental dos microclimas e objetivos gerais/específicos.</li>
+            <li><strong>Desenvolvimento (15 a 20 páginas divididas nas 6 etapas oficiais):</strong>
+              <ul style="list-style: circle; padding-left: 1.5rem; margin: 0.5rem 0;">
+                <li><em>2.1 – Concepção e Planejamento:</em> Metodologias ágeis (Kanban), levantamento de requisitos.</li>
+                <li><em>2.2 – Circuitos Eletrônicos e Hardware:</em> Esquemático na protoboard, dimensionamento e portas lógicas de segurança.</li>
+                <li><em>2.3 – Firmware do Microcontrolador ESP32:</em> Rotinas em C++, temporização não-bloqueante e transmissão Wi-Fi.</li>
+                <li><em>2.4 – Backend em Nuvem e Banco de Dados:</em> Arquitetura AWS, API FastAPI e esquema relacional no PostgreSQL.</li>
+                <li><em>2.5 – Fundamentos Teóricos Interdisciplinares:</em> Modelagem de Lógica Matemática e formulações de Geometria Analítica.</li>
+                <li><em>2.6 – Dashboard Público e Análise de Dados:</em> Telas, gráficos temporais, mapas interativos e responsividade.</li>
+                <li><em>2.7 – Resultados e Discussão:</em> Logs de teste, estabilidade de comunicação e impacto na conscientização pública.</li>
+              </ul>
+            </li>
+            <li><strong>Conclusão (1,5 a 2 páginas):</strong> Síntese dos resultados, avaliação dos desafios superados e trabalhos futuros.</li>
+            <li><strong>Referências:</strong> Normatização ABNT NBR 6023 (livros indicados no plano de ensino e referências técnicas).</li>
+          </ol>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Interactive Scripts -->
+  <script>
+    // Theme Toggle Logic
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+    
+    // Check saved theme or system preference
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeUI(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeUI(newTheme);
+    });
+
+    function updateThemeUI(theme) {
+      if (theme === 'dark') {
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark';
+      } else {
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light';
+      }
+    }
+
+    // Reading Progress Bar
+    window.addEventListener('scroll', () => {
+      const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById('progress-bar').style.width = scrolled + '%';
+    });
+
+    // Sidebar Active State on Scroll (Intersection Observer)
+    const sections = document.querySelectorAll('section');
+    const navLinks = document.querySelectorAll('.sidebar a');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === '#' + id) {
+              link.classList.add('active');
+            }
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach(sec => observer.observe(sec));
+
+    // Copy Code functionality
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrapper').querySelector('pre code');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copiado! ✓';
+        btn.style.color = '#34d399';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.color = '';
+        }, 2000);
+      });
+    }
+
+    // Mobile Menu Toggle
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebarNav = document.getElementById('sidebar-nav');
+    if (menuToggle && sidebarNav) {
+      menuToggle.addEventListener('click', () => {
+        sidebarNav.classList.toggle('open');
+      });
+      // Close sidebar when clicking a link on mobile
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 900) {
+            sidebarNav.classList.remove('open');
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

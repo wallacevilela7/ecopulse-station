@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="EcoPulse Urbano - Dashboard Público de Monitoramento Climático e Qualidade Ambiental">
+  <title>EcoPulse Urbano | Monitoramento Climático Inteligente</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+  <!-- Chart.js & Leaflet.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-logo">🌱</div>
+        <div>
+          <h1 class="brand-title">EcoPulse Urbano</h1>
+          <p class="brand-subtitle">Estação Meteorológica &bull; Monitoramento Inteligente</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-indicator" id="conn-status">
+          <span class="status-dot"></span>
+          <span id="conn-text">Conectando...</span>
+        </div>
+        <button class="btn-theme" id="theme-btn" aria-label="Alternar Tema">🌙</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- Alerts Banner (Dynamically injected) -->
+    <div id="alerts-container"></div>
+
+    <!-- Live Telemetry Metric Cards -->
+    <section class="section-block">
+      <div class="section-header">
+        <h2>Condições Climáticas em Tempo Real</h2>
+        <span class="last-update" id="last-update">Atualizando...</span>
+      </div>
+
+      <div class="metrics-grid">
+        <!-- Temperatura -->
+        <div class="metric-card" id="card-temp">
+          <div class="metric-icon">🌡️</div>
+          <div class="metric-info">
+            <span class="metric-label">Temperatura do Ar</span>
+            <div class="metric-value"><span id="val-temp">--</span><span class="metric-unit">°C</span></div>
+            <span class="metric-sub">Sensação Térmica: <strong id="val-heat-index">--</strong>°C</span>
+          </div>
+        </div>
+
+        <!-- Umidade -->
+        <div class="metric-card" id="card-humidity">
+          <div class="metric-icon">💧</div>
+          <div class="metric-info">
+            <span class="metric-label">Umidade Relativa</span>
+            <div class="metric-value"><span id="val-humidity">--</span><span class="metric-unit">%</span></div>
+            <span class="metric-sub">Ponto de Orvalho: <strong id="val-dew-point">--</strong>°C</span>
+          </div>
+        </div>
+
+        <!-- Pressão Atmosférica -->
+        <div class="metric-card" id="card-pressure">
+          <div class="metric-icon">🧭</div>
+          <div class="metric-info">
+            <span class="metric-label">Pressão Barométrica</span>
+            <div class="metric-value"><span id="val-pressure">--</span><span class="metric-unit">hPa</span></div>
+            <span class="metric-sub">Altitude: <strong id="val-altitude">--</strong> m</span>
+          </div>
+        </div>
+
+        <!-- Qualidade do Ar -->
+        <div class="metric-card" id="card-aqi">
+          <div class="metric-icon">🍃</div>
+          <div class="metric-info">
+            <span class="metric-label">Qualidade do Ar (PPM)</span>
+            <div class="metric-value"><span id="val-aqi">--</span><span class="metric-unit">PPM</span></div>
+            <span class="metric-sub">Índice: <strong id="val-aqi-class" class="badge-aqi">--</strong></span>
+          </div>
+        </div>
+
+        <!-- Radiação / Luz Solar -->
+        <div class="metric-card" id="card-light">
+          <div class="metric-icon">☀️</div>
+          <div class="metric-info">
+            <span class="metric-label">Luminosidade / Sol</span>
+            <div class="metric-value"><span id="val-light">--</span><span class="metric-unit">%</span></div>
+            <span class="metric-sub">Condição: <strong id="val-light-status">--</strong></span>
+          </div>
+        </div>
+
+        <!-- Chuva / Pluviometria -->
+        <div class="metric-card" id="card-rain">
+          <div class="metric-icon">🌧️</div>
+          <div class="metric-info">
+            <span class="metric-label">Chuva Instantânea</span>
+            <div class="metric-value"><span id="val-rain">--</span><span class="metric-unit">%</span></div>
+            <span class="metric-sub">Precipitação: <strong id="val-rain-status">Sem Chuva</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Charts Section -->
+    <section class="section-block">
+      <div class="section-header">
+        <h2>Séries Temporais (Últimas 24 Horas)</h2>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Temperatura & Sensação Térmica (°C)</h3>
+          <div class="chart-wrapper">
+            <canvas id="tempChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Pressão Atmosférica & Pluviometria</h3>
+          <div class="chart-wrapper">
+            <canvas id="pressureChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Geoanalytics Map -->
+    <section class="section-block">
+      <div class="section-header">
+        <div>
+          <h2>Abrangência Analítica & Georreferenciamento</h2>
+          <p class="section-desc">Cálculo de distância euclidiana via equação canônica da circunferência no plano cartesiano local.</p>
+        </div>
+        <button class="btn-location" id="btn-geolocation">📍 Minha Localização</button>
+      </div>
+
+      <div id="map-container">
+        <div id="map"></div>
+      </div>
+      <div id="geo-result" class="geo-result-box" style="display: none;"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p><strong>EcoPulse Urbano</strong> &bull; Projeto Integrado Multidisciplinar II (PIM II / PD-II)</p>
+      <p>Ciência da Computação &bull; Universidade Paulista (UNIP) &bull; 2026</p>
+    </div>
+  </footer>
+
+  <!-- App Scripts -->
+  <script src="js/charts.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
